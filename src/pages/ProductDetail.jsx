@@ -22,6 +22,11 @@ export default function ProductDetail() {
 function ProductView({ product, related }) {
   const { addItem } = useCart()
   const [activeImage, setActiveImage] = useState(0)
+  // Photos that failed to load are dropped from the gallery instead of showing placeholders.
+  const [broken, setBroken] = useState(() => new Set())
+  const images = product.images.filter((src) => !broken.has(src))
+  const active = Math.min(activeImage, Math.max(images.length - 1, 0))
+  const markBroken = (src) => setBroken((prev) => (prev.has(src) ? prev : new Set(prev).add(src)))
   const [size, setSize] = useState(null)
   const [quantity, setQuantity] = useState(1)
   const [sizeError, setSizeError] = useState(false)
@@ -49,28 +54,38 @@ function ProductView({ product, related }) {
       <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
         {/* Gallery */}
         <div className="flex flex-col-reverse gap-4 sm:flex-row lg:sticky lg:top-32 lg:self-start">
-          <div className="flex gap-3 sm:flex-col" role="tablist" aria-label="Product images">
-            {product.images.map((src, i) => (
-              <button
-                key={src}
-                type="button"
-                role="tab"
-                aria-selected={activeImage === i}
-                aria-label={`Show image ${i + 1}`}
-                onClick={() => setActiveImage(i)}
-                className={`overflow-hidden rounded-xl ring-2 ring-offset-2 ring-offset-cream-50 transition ${
-                  activeImage === i ? 'ring-gold-500' : 'ring-transparent opacity-70 hover:opacity-100'
-                }`}
-              >
-                <ProductImage src={src} alt="" label={`${i + 1}`} className="h-24 w-18 sm:h-28 sm:w-21" />
-              </button>
-            ))}
-          </div>
+          {images.length > 1 && (
+            <div className="flex gap-3 sm:flex-col" role="tablist" aria-label="Product images">
+              {images.map((src, i) => (
+                <button
+                  key={src}
+                  type="button"
+                  role="tab"
+                  aria-selected={active === i}
+                  aria-label={`Show image ${i + 1}`}
+                  onClick={() => setActiveImage(i)}
+                  className={`overflow-hidden rounded-xl ring-2 ring-offset-2 ring-offset-cream-50 transition ${
+                    active === i ? 'ring-gold-500' : 'ring-transparent opacity-70 hover:opacity-100'
+                  }`}
+                >
+                  <ProductImage
+                    src={src}
+                    alt=""
+                    label={`${i + 1}`}
+                    hideOnError
+                    onError={markBroken}
+                    className="h-24 w-18 sm:h-28 sm:w-21"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
           <div className="flex-1">
             <ProductImage
-              key={activeImage}
-              src={product.images[activeImage]}
-              alt={`${product.name} — image ${activeImage + 1}`}
+              key={images[active] ?? 'placeholder'}
+              src={images[active]}
+              alt={`${product.name} — image ${active + 1}`}
+              onError={markBroken}
               label={product.name}
               loading="eager"
               className="aspect-[3/4] animate-fade-in rounded-3xl shadow-xl shadow-cocoa-900/10"

@@ -5,10 +5,24 @@ import BrandMark from './BrandMark'
  * <img> with a branded fallback. If the local photo in /public/images is
  * missing (or fails to load), an elegant Ankara-patterned placeholder with
  * the product name is shown instead, so the layout never breaks.
+ *
+ * `hideOnError` renders nothing instead of the placeholder (for optional
+ * extra photos); `onError` reports the failed src to the parent.
  */
-export default function ProductImage({ src, alt, className = '', imgClassName = '', label, loading = 'lazy' }) {
+export default function ProductImage({
+  src,
+  alt,
+  className = '',
+  imgClassName = '',
+  label,
+  loading = 'lazy',
+  hideOnError = false,
+  onError,
+}) {
   const [failedSrc, setFailedSrc] = useState(null)
   const failed = !src || failedSrc === src
+
+  if (failed && hideOnError) return null
 
   return (
     <div className={`@container relative overflow-hidden bg-cream-200 ${className}`}>
@@ -23,7 +37,10 @@ export default function ProductImage({ src, alt, className = '', imgClassName = 
           src={src}
           alt={alt}
           loading={loading}
-          onError={() => setFailedSrc(src)}
+          onError={() => {
+            setFailedSrc(src)
+            onError?.(src)
+          }}
           className={`h-full w-full object-cover ${imgClassName}`}
         />
       )}
