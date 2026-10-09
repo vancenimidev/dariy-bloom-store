@@ -45,8 +45,12 @@ create table if not exists public.orders (
   delivery_fee     integer not null default 0,
   total            integer not null,
   status           text not null default 'new',
+  confirmation_sent_at timestamptz,   -- set by api/send-order-email; one email per order
   created_at       timestamptz not null default now()
 );
+
+-- For databases created before this column existed:
+alter table public.orders add column if not exists confirmation_sent_at timestamptz;
 
 alter table public.orders enable row level security;
 

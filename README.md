@@ -47,29 +47,42 @@ npm run build          # production build in dist/
 │       ├── supabase.js      ← Supabase client from VITE_SUPABASE_* env vars
 │       ├── productsApi.js   ← load products (Supabase → local fallback)
 │       ├── ordersApi.js     ← save orders (localStorage + Supabase)
-│       ├── email.js         ← build + send/simulate confirmation email
+│       ├── email.js         ← request (or simulate) the confirmation email
+│       ├── orderEmail.js    ← builds the email text (shared with api/)
+│       ├── images.js        ← parses/resolves product image references
 │       ├── config.js        ← brand info, bank details, delivery fee
 │       └── format.js        ← ₦ formatting, order reference
+├── api/
+│   └── send-order-email.js  ← Vercel function: sends the Mailgun confirmation
 └── supabase/
-    ├── schema.sql           ← tables, RLS policies, product seed
-    └── functions/send-order-email/index.ts  ← Mailgun Edge Function
+    └── schema.sql           ← tables, RLS policies, product seed
 ```
 
 ## Product images
 
-Images are referenced as `/images/<name>.jpg` and served from `public/images/`.
-See [`public/images/README.md`](public/images/README.md) for the exact filenames.
+Each product's `images` (in `src/data/products.js` or the Supabase `products.images` column) is a list of image references.
+`src/lib/images.js` parses the column (JSONB array, JSON string, Postgres array or comma-separated text) and resolves each entry:
+
+| Stored value | Loaded from |
+| --- | --- |
+| `https://…` | that URL as-is (e.g. a Supabase Storage public URL) |
+| `/images/ara-set-1.jpg` or `images/ara-set-1.jpg` | `public/images/` in this repo, deployed with the site |
+| `ara-set-1.jpg` or `ara/front.jpg` | public URL in the Supabase Storage bucket `VITE_SUPABASE_STORAGE_BUCKET` (default `product-images`) |
+
+Missing images fall back to a branded placeholder. Filenames are case-sensitive on Vercel (`.JPG` ≠ `.jpg`).
+For files in `public/images/`, see [`public/images/README.md`](public/images/README.md).
 
 ## Supabase (optional)
 
 1. Create a Supabase project and run [`supabase/schema.sql`](supabase/schema.sql) in the SQL editor.
    This creates `products` (publicly readable) and `orders` (insert-only for the storefront) and seeds the catalogue.
-2. Add your keys to `.env`:
+   It is safe to re-run on an existing database (it adds any new columns).
+2. Add your keys to `.env` (and to Vercel → Settings → Environment Variables):
    ```
    VITE_SUPABASE_URL=https://<project-ref>.supabase.co
    VITE_SUPABASE_ANON_KEY=<anon key>
    ```
-3. Restart `npm run dev`.
+3. Restart `npm run dev` (or redeploy on Vercel — `VITE_` variables are baked in at build time).
 
 Behaviour:
 - **Products** load from Supabase when the table has rows; otherwise `src/data/products.js` is used.
@@ -77,18 +90,24 @@ Behaviour:
 
 ## Order confirmation email (Mailgun)
 
-`src/lib/email.js` builds a Mailgun-shaped payload (`to`, `subject`, `text`, `html`, `v:*` variables).
+`api/send-order-email.js` is a Vercel Serverless Function. After an order is saved to Supabase, the browser POSTs
+only the order reference; the function loads the order with the Supabase service role key, builds the email
+(`src/lib/orderEmail.js`) and sends it through Mailgun. Each order is emailed at most once (`orders.confirmation_sent_at`),
+and the Mailgun key never reaches the browser.
 
-- **Without** `VITE_ORDER_EMAIL_ENDPOINT`, the email is simulated and printed to the browser console.
-- **With** it, the payload is POSTed to that endpoint. Never put a Mailgun key in the frontend — use the included Edge Function:
+Set these in **Vercel → Project → Settings → Environment Variables**, then redeploy:
 
-```bash
-supabase secrets set MAILGUN_API_KEY=key-xxx MAILGUN_DOMAIN=mg.yourdomain.com \
-  MAILGUN_FROM="Dariy Bloom <orders@mg.yourdomain.com>" ALLOWED_ORIGIN=https://yourstore.com
-supabase functions deploy send-order-email --no-verify-jwt
-```
+| Variable | Value |
+| --- | --- |
+| `MAILGUN_API_KEY` | Mailgun → API Security → API key |
+| `MAILGUN_DOMAIN` | your sending domain, e.g. `mg.dariybloom.com` |
+| `MAILGUN_FROM` | optional, e.g. `Dariy Bloom <orders@mg.dariybloom.com>` |
+| `MAILGUN_API_BASE` | optional, `https://api.eu.mailgun.net` for EU-region domains |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API → `service_role` (secret) |
+| `VITE_ORDER_EMAIL_ENDPOINT` | `/api/send-order-email` |
 
-Then set `VITE_ORDER_EMAIL_ENDPOINT=https://<project-ref>.supabase.co/functions/v1/send-order-email`.
+Requires Supabase to be configured (orders must be saved there). Without `VITE_ORDER_EMAIL_ENDPOINT` the email is
+simulated and logged to the browser console. `npm run dev` doesn't serve `/api`; use `vercel dev` to test it locally.
 
 ## Customising
 
