@@ -101,3 +101,6 @@ values
    '["/images/ankara-midi-dress-1.jpg","/images/ankara-midi-dress-2.jpg","/images/ankara-midi-dress-3.jpg"]',
    'Signature', 4)
 on conflict (id) do nothing;
+
+-- ─── Shared cart (web + mobile) ────────────────────────────────────────────
+-- See supabase/migrations/20261010000000_shared_cart.sql — run it after this file.
