@@ -24,6 +24,7 @@ export default function ProductCard({ product, index = 0 }) {
                 src={product.images[1]}
                 alt=""
                 label={product.name}
+                hideOnError
                 className="absolute! inset-0 opacity-0 transition-opacity duration-700 group-hover:opacity-100"
               />
             )}

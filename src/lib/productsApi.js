@@ -1,4 +1,5 @@
 import { products as localProducts } from '../data/products'
+import { normalizeImages, parseList } from './images'
 import { supabase } from './supabase'
 
 /**
@@ -29,9 +30,9 @@ const fromRow = (row) => ({
   category: row.category,
   tagline: row.tagline,
   description: row.description,
-  details: row.details ?? [],
-  sizes: row.sizes ?? [],
-  images: row.images ?? [],
+  details: parseList(row.details).map(String),
+  sizes: parseList(row.sizes).map(String),
+  images: normalizeImages(row.images),
   badge: row.badge ?? undefined,
 })
 

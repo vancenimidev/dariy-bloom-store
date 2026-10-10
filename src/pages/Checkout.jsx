@@ -80,8 +80,9 @@ export default function Checkout() {
     try {
       setStatus('saving')
       const { synced } = await saveOrder(order)
+      // Right after the Supabase insert, ask api/send-order-email to email the customer.
       setStatus('emailing')
-      const email = await sendOrderConfirmation(order)
+      const email = await sendOrderConfirmation(order, { synced })
       const completed = { ...order, synced, emailStatus: email.status }
       saveOrderLocally(completed)
       navigate(`/order/${order.reference}`, { replace: true, state: { order: completed } })
