@@ -106,6 +106,13 @@ Set these in **Vercel → Project → Settings → Environment Variables**, then
 Without `RESEND_FROM`, emails come from `onboarding@resend.dev`, which Resend only delivers to your own Resend account
 address — fine for testing, not for customers.
 
+Enable the variables for **Production and Preview**, and redeploy after changing them.
+
+**Troubleshooting:** open `https://<your-site>/api/send-order-email` in a browser. It reports whether the function is
+deployed, which variables are missing, whether Supabase is reachable (including the `confirmation_sent_at` column), and
+warns if you're still sending from `onboarding@resend.dev`. No secret values are shown. Full error messages for each
+order are in **Vercel → Project → Logs** (filter by `send-order-email`).
+
 When Supabase isn't configured, the email is simulated and logged to the browser console instead.
 `npm run dev` doesn't serve `/api`; use `vercel dev` to test the real email locally.
 
