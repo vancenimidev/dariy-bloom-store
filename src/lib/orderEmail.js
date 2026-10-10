@@ -4,8 +4,8 @@ import { formatNaira } from './format.js'
 // Pure (no browser or Vite APIs) so the Vercel function in api/ can import it too.
 
 /**
- * Build the order confirmation email. Field names match Mailgun's
- * `messages` API (to / subject / text / html / v:* variables).
+ * Build the order confirmation email. Returns { to, subject, text, html, ... }
+ * for api/send-order-email.js to pass to the email provider.
  */
 export function buildOrderEmail(order) {
   const lines = order.items

@@ -5,7 +5,7 @@
 > Instagram: [@dariy_bloom](https://www.instagram.com/dariy_bloom/)
 
 A responsive e-commerce storefront built with **React + Vite + Tailwind CSS v4**, with
-optional **Supabase** persistence and a **Mailgun**-ready order confirmation flow.
+optional **Supabase** persistence and order confirmation emails via **Resend**.
 
 ## Quick start
 
@@ -53,7 +53,7 @@ npm run build          # production build in dist/
 │       ├── config.js        ← brand info, bank details, delivery fee
 │       └── format.js        ← ₦ formatting, order reference
 ├── api/
-│   └── send-order-email.js  ← Vercel function: sends the Mailgun confirmation
+│   └── send-order-email.js  ← Vercel function: sends the confirmation via Resend
 └── supabase/
     └── schema.sql           ← tables, RLS policies, product seed
 ```
@@ -88,26 +88,26 @@ Behaviour:
 - **Products** load from Supabase when the table has rows; otherwise `src/data/products.js` is used.
 - **Orders** are always saved locally (so the success page survives a refresh) and also inserted into `orders` when Supabase is configured. View them in the Supabase dashboard.
 
-## Order confirmation email (Mailgun)
+## Order confirmation email (Resend)
 
-`api/send-order-email.js` is a Vercel Serverless Function. After an order is saved to Supabase, the browser POSTs
-only the order reference; the function loads the order with the Supabase service role key, builds the email
-(`src/lib/orderEmail.js`) and sends it through Mailgun. Each order is emailed at most once (`orders.confirmation_sent_at`),
-and the Mailgun key never reaches the browser.
+`api/send-order-email.js` is a Vercel Serverless Function. Right after an order is inserted into Supabase, the checkout
+POSTs only the order reference to `/api/send-order-email`; the function loads the order with the Supabase service role
+key, builds the email (`src/lib/orderEmail.js`) and sends it through [Resend](https://resend.com). Each order is emailed
+at most once (`orders.confirmation_sent_at`), and the Resend key never reaches the browser.
 
 Set these in **Vercel → Project → Settings → Environment Variables**, then redeploy:
 
 | Variable | Value |
 | --- | --- |
-| `MAILGUN_API_KEY` | Mailgun → API Security → API key |
-| `MAILGUN_DOMAIN` | your sending domain, e.g. `mg.dariybloom.com` |
-| `MAILGUN_FROM` | optional, e.g. `Dariy Bloom <orders@mg.dariybloom.com>` |
-| `MAILGUN_API_BASE` | optional, `https://api.eu.mailgun.net` for EU-region domains |
+| `RESEND_API_KEY` | Resend → API Keys |
+| `RESEND_FROM` | e.g. `Dariy Bloom <orders@dariybloom.com>` — the domain must be verified in Resend → Domains |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API → `service_role` (secret) |
-| `VITE_ORDER_EMAIL_ENDPOINT` | `/api/send-order-email` |
 
-Requires Supabase to be configured (orders must be saved there). Without `VITE_ORDER_EMAIL_ENDPOINT` the email is
-simulated and logged to the browser console. `npm run dev` doesn't serve `/api`; use `vercel dev` to test it locally.
+Without `RESEND_FROM`, emails come from `onboarding@resend.dev`, which Resend only delivers to your own Resend account
+address — fine for testing, not for customers.
+
+When Supabase isn't configured, the email is simulated and logged to the browser console instead.
+`npm run dev` doesn't serve `/api`; use `vercel dev` to test the real email locally.
 
 ## Customising
 

@@ -10,7 +10,7 @@ const EMAIL_COPY = {
   sent: (email) => <>A confirmation email is on its way to <strong>{email}</strong>.</>,
   simulated: (email) => (
     <>
-      Confirmation email to <strong>{email}</strong> simulated (see the browser console) — ready for Mailgun.
+      Confirmation email to <strong>{email}</strong> simulated (see the browser console).
     </>
   ),
   failed: (email) => <>We couldn't email <strong>{email}</strong> just now, but your order is saved. We'll be in touch.</>,
